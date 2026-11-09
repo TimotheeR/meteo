@@ -1,0 +1,59 @@
+/**
+ * Exercice 5 : résoudre un conflit de méthodes default (corrigé).
+ * Lancer : java Exo05_Diamant.java
+ */
+public class Exo05_Diamant {
+    public static void main(String[] args) {
+        Check.egal("wifi+bluetooth", new Telephone().connecter(), "Telephone combine les deux");
+        Check.egal("wifi", new Tablette().connecter(), "Tablette choisit le wifi");
+        Check.egal("filaire", new Ordinateur().connecter(), "Règle 1 : la classe mère gagne");
+        Check.egal("5G", new Modem().connecter(), "Règle 2 : l'interface la plus spécifique gagne");
+        Check.fin();
+    }
+}
+
+interface Wifi      { default String connecter() { return "wifi"; } }
+interface Bluetooth { default String connecter() { return "bluetooth"; } }
+
+// Règle 3 : conflit, on doit redéfinir
+class Telephone implements Wifi, Bluetooth {
+    @Override
+    public String connecter() {
+        return Wifi.super.connecter() + "+" + Bluetooth.super.connecter();
+    }
+}
+
+class Tablette implements Wifi, Bluetooth {
+    @Override
+    public String connecter() {
+        return Wifi.super.connecter();
+    }
+}
+
+// Règle 1 : la méthode héritée d'une classe passe avant les default
+class Machine { public String connecter() { return "filaire"; } }
+class Ordinateur extends Machine implements Wifi, Bluetooth { }
+
+// Règle 2 : CinqG étend Wifi, sa version est plus spécifique
+interface CinqG extends Wifi { @Override default String connecter() { return "5G"; } }
+class Modem implements Wifi, CinqG { }
+
+/** Mini outil de vérification (on passera à JUnit au Module 12). */
+class Check {
+    private static int ok = 0, ko = 0;
+
+    static void vrai(boolean condition, String message) {
+        if (condition) { ok++; System.out.println("  ✅ " + message); }
+        else           { ko++; System.out.println("  ❌ " + message); }
+    }
+
+    static void egal(Object attendu, Object obtenu, String message) {
+        vrai(java.util.Objects.equals(attendu, obtenu),
+             message + (java.util.Objects.equals(attendu, obtenu) ? "" : " (attendu " + attendu + ", obtenu " + obtenu + ")"));
+    }
+
+    static void fin() {
+        System.out.println(ko == 0 ? "\n🎉 " + ok + "/" + ok + " vérifications OK"
+                                   : "\n" + ok + "/" + (ok + ko) + " vérifications OK");
+    }
+}

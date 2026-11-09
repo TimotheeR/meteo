@@ -142,6 +142,8 @@ on reproduit en Java un morceau de ton architecture, puis on le refactorise.
 
 ## Module 4 : Interfaces 🎯
 
+> ✅ Contenu rédigé : [module-04-interfaces/](module-04-interfaces/README.md)
+
 📘 Notions
 - Ce qu'est une interface : un contrat, pas une implémentation
 - 🔁 Dart : toute classe est une interface implicite (`implements`), Java demande
