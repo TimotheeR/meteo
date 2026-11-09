@@ -1,6 +1,6 @@
 # Programme de révision / mise à niveau Java
 
-> **Profil** : Java vu en M1/M2, Flutter/Dart en pro depuis 2019.
+> **Profil** : Java vu en M1/M2, Flutter/Dart en pro depuis 2019 (projets : `meteo`, `headsup`).
 > **Points faibles déclarés** : singletons, interfaces.
 > **Objectif** : remettre Java à niveau (Java 21 LTS) avec un passage par Dart quand ça aide.
 >
@@ -16,6 +16,24 @@ Un même projet tout au long du programme : réécrire en Java la logique de l'a
 venant d'OpenWeatherMap). Il commence en ligne de commande et devient à la fin une API REST.
 Chaque module y ajoute une brique (marqué 🧵).
 
+## Ce que montre HeadsUp (et ce que ça change au programme)
+
+Constats tirés du code de `headsup` (Flutter, Dart 3.8, Bloc/Cubit, Firebase) :
+
+| Dans HeadsUp | Conséquence pour le programme Java |
+|---|---|
+| ~270 classes `extends Equatable` | Tu manies déjà l'égalité par valeur : Module 2 (`equals`/`hashCode`, `record`) ira vite |
+| `sealed class AppEvent`, Bloc/Cubit | Module 3 (`sealed`, `switch` exhaustif) : terrain connu |
+| Exceptions maison (`AddFailure`, `FetchFailure`… `implements Exception`) | Module 5 centré sur ce qui est nouveau : *checked* et *unchecked* |
+| ~180 fichiers avec des `extension` | Java n'a pas d'extensions : méthodes utilitaires `static`, composition |
+| Repositories **concrets**, aucune interface abstraite | 🎯 Interfaces : tu n'as jamais eu besoin de les écrire, d'où le flou |
+| ~55 appels directs à `FirebaseFirestore.instance`, cubits créés sans dépendances (`ItemsCubit()`) | 🎯 Singleton : tu en **utilises** partout sans le voir, et ils couplent le code à Firebase |
+| 4 fichiers de test seulement | Module 12 : on verra que ces deux points sont justement ce qui rend le code difficile à tester |
+
+Conclusion : les Modules 4, 9 et 12 forment un seul bloc
+(« interface + injection = code testable »), avec des **exercices miroirs HeadsUp** (marqués 🪞) :
+on reproduit en Java un morceau de ton architecture, puis on le refactorise.
+
 ## Légende
 
 - 📘 Leçon : la notion
@@ -25,6 +43,7 @@ Chaque module y ajoute une brique (marqué 🧵).
 - 📝 Examen : évaluation (QCM, questions de code, sujet pratique)
 - 🎯 Point faible à travailler en priorité
 - 🔁 Équivalent Dart / Flutter
+- 🪞 Exercice miroir HeadsUp
 
 ---
 
@@ -65,6 +84,7 @@ Chaque module y ajoute une brique (marqué 🧵).
 - Inverser une chaîne, palindrome, compter les voyelles
 - Manipuler des tableaux : min, max, moyenne, tri à la main
 - Quiz « Qu'affiche ce code ? » (pièges `==` / `equals`, cache des `Integer`)
+- Remplacer les `extension` Dart par leur équivalent Java (méthodes `static` utilitaires)
 
 📝 Mini-quiz 1 (QCM, 15 questions)
 
@@ -87,6 +107,7 @@ Chaque module y ajoute une brique (marqué 🧵).
 - Classe `Point` avec `equals` / `hashCode` corrects, puis en `record`
 - `enum Planete` avec masse, rayon et calcul de gravité
 - Trouver les bugs d'encapsulation dans un code fourni
+- 🪞 Traduire 3 modèles `Equatable` de HeadsUp (ex. adresse, téléphone, tarif) : à la main, puis en `record`
 
 🛠️ TP 1 : Modéliser un compte bancaire (dépôt, retrait, historique, invariants)
 
@@ -111,6 +132,7 @@ Chaque module y ajoute une brique (marqué 🧵).
 - Hiérarchie `Forme` → `Cercle`, `Rectangle`, `Triangle` (aire, périmètre)
 - Réécrire cette hiérarchie en `sealed` + `switch` exhaustif
 - Prédire la méthode appelée (surcharge vs redéfinition)
+- 🪞 Porter `sealed class AppEvent` et son traitement en `switch` Java 21
 
 🛠️ TP 2 : Gestion d'un parc de véhicules (abstraction, polymorphisme)
 
@@ -143,7 +165,10 @@ Chaque module y ajoute une brique (marqué 🧵).
 - Ajouter une méthode `default` sans casser les classes existantes
 - Résoudre un conflit de méthodes `default`
 - Refactoriser un code plein de `if (type == ...)` en interface + polymorphisme
-- Exercice miroir : traduire en Java une `abstract class` Dart utilisée avec `implements`
+- 🪞 Traduire en Java `HasFeature` / `HasDataShareFeature` (classes abstraites de HeadsUp
+  utilisées comme contrats) et décider : interface ou classe abstraite ?
+- 🪞 Extraire une interface `EncryptionRepository` de la classe concrète, et écrire
+  une seconde implémentation en mémoire
 
 🛠️ TP 3 : Système de notifications (`Notifier` → Email, SMS, Push), puis
 ajout d'un canal sans toucher au code existant (principe ouvert/fermé)
@@ -168,6 +193,7 @@ ajout d'un canal sans toucher au code existant (principe ouvert/fermé)
 ✏️ Exos
 - Lire un fichier avec `try-with-resources`
 - Écrire `SoldeInsuffisantException` pour le TP 1
+- 🪞 Porter `AddFailure`, `FetchFailure`, `UpdateFailure`… : lesquelles doivent être *checked* ?
 
 🧵 Gestion des erreurs réseau et JSON (🔁 le `throw Exception('Failed to load datas')`)
 
@@ -265,8 +291,14 @@ ajout d'un canal sans toucher au code existant (principe ouvert/fermé)
 - Remplacer un Singleton par de l'injection et voir ce que ça change pour les tests
 - Builder pour une requête HTTP
 - Strategy : calcul de frais de livraison
+- 🪞 Repérer les singletons cachés de HeadsUp (`FirebaseFirestore.instance`,
+  `FirebaseAuth.instance`, `WidgetsBinding.instance`…) : lesquels sont légitimes, lesquels gênent ?
+- 🪞 Écrire en Java un `ItemsService` qui appelle directement un `Database.INSTANCE`,
+  essayer de le tester, puis le refactoriser avec injection par constructeur
+  (🔁 ce que fait déjà `App(AuthenticationRepository ...)` avec `RepositoryProvider`)
 
 🛠️ TP 6 : Refactoring d'un code « spaghetti » en appliquant 3 patterns et SOLID
+(🪞 point de départ : une version Java simplifiée d'un module HeadsUp, cubit + repository + Firestore)
 
 🧵 `ConfigManager` en Singleton (`enum`), `WeatherService` construit par injection
 
@@ -308,6 +340,8 @@ ajout d'un canal sans toucher au code existant (principe ouvert/fermé)
 - Mettre en évidence une race condition, puis la corriger
 - Lancer 10 requêtes en parallèle avec `CompletableFuture.allOf`
 - Comparer un pool classique et des threads virtuels
+- 🪞 Reproduire un flux type `snapshots()` de Firestore : `Flow.Publisher` / Observer
+  (🔁 `Stream`, `rxdart`)
 
 🛠️ TP 7 : Téléchargeur de fichiers en parallèle avec suivi de progression
 
@@ -331,9 +365,14 @@ ajout d'un canal sans toucher au code existant (principe ouvert/fermé)
 - Tester les classes du TP 1
 - Kata TDD : calculatrice de chaînes (*String Calculator*)
 - Mocker `WeatherProvider`
+- 🪞 Tester le `ItemsService` refactorisé du Module 9 avec un faux repository :
+  comparer avec la version Singleton (impossible à tester proprement)
 
 🧵 Tests unitaires du service météo grâce à `FakeWeatherProvider`
 (on récupère ici le travail fait sur les interfaces au Module 4)
+
+Bonus 🔁 : appliquer la même démarche dans HeadsUp (une interface de repository + un test de cubit
+avec `bloc_test`), pour transposer ce qu'on a appris en Java
 
 ---
 
@@ -387,8 +426,8 @@ Bonus : une série de questions façon **entretien technique Java**.
 | Semaines | Modules |
 |---|---|
 | 1 | 0, 1 |
-| 2 à 3 | 2, 3 + Partiel 1 |
-| 4 à 5 | 4 🎯 (temps doublé) |
+| 2 | 2, 3 (rapide : notions proches de ce que tu fais avec Equatable / sealed) + Partiel 1 |
+| 3 à 5 | 4 🎯 (temps triplé) |
 | 6 à 7 | 5, 6, 7 + Partiel 2 |
 | 8 | 8 |
 | 9 à 10 | 9 🎯 (temps doublé) |
